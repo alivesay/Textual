@@ -42,6 +42,8 @@
 /* We shouldn't want to load anything larger than this. */
 #define _imageMaximumImageWidth				5000
 
+#define _maxURLRedirects                    3
+
 /* Private stuff. =) */
 @interface TVCImageURLoader ()
 @property (nonatomic, nweak) TVCLogController *requestOwner;
@@ -50,6 +52,7 @@
 @property (nonatomic, strong) NSURLConnection *requestConnection;
 @property (nonatomic, strong) NSHTTPURLResponse *requestResponse;
 @property (nonatomic, assign) BOOL isInRequestWithCheckForMaximumHeight;
+@property (nonatomic, assign) int redirectCount;
 @end
 
 @implementation TVCImageURLoader
@@ -102,6 +105,7 @@
 	/* Send the actual request off. */
 	self.requestImageUniqeID = uniqueID;
 	self.requestOwner = controller;
+    self.redirectCount = 0;
 
 	self.requestConnection = [[NSURLConnection alloc] initWithRequest:baseRequest delegate:self];
 
@@ -220,6 +224,16 @@
 			[self connectionDidFinishLoading:nil]; // This will call -destroyConnectionRequest for us.
 		}
 	}
+}
+
+- (NSURLRequest *) connection:(NSURLConnection *)connection willSendRequest:(NSURLRequest *)request redirectResponse:(NSURLResponse *)redirectResponse
+{
+    self.redirectCount++;
+    
+    if (self.redirectCount > _maxURLRedirects)
+        return nil;
+    else
+        return request;
 }
 
 - (NSCachedURLResponse *)connection:(NSURLConnection *)connection willCacheResponse:(NSCachedURLResponse *)cachedResponse
